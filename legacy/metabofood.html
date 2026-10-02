@@ -3293,9 +3293,6 @@ function viewFoods() {
 
 /* ---------- food sheet ---------- */
 var FOOD_TABS = [["overview", "Overview"], ["composition", "Composition"], ["mechanism", "Mechanism"], ["evidence", "Evidence"], ["compare", "Compare"]]
-// the Mechanism tab lives in its own page, kept next to this file
-var MECH_PAGE = "mechanism.html"
-function hrefMech(f) { return MECH_PAGE + "?food=" + encodeURIComponent(f.slug) + "&name=" + encodeURIComponent(f.name) }
 function hrefFoodComp(f, c) { return "#/food/" + f.slug + "/compound/" + encodeURIComponent(c.name) }
 // a research-linked compound opened from inside a food: show it in that food
 function hrefChemIn(f, ch) {
@@ -3306,8 +3303,6 @@ function viewFood(slug, tab, compName) {
   var f = FOOD_BY_SLUG[slug]
   if (!f) return notFound("That food is not in the data.")
   tab = tab || "overview"
-  // any route into a food's Mechanism tab opens mechanism.html instead (replace, so Back is not trapped)
-  if (tab === "mechanism") { location.replace(hrefMech(f)); return }
   var fc = tab === "compound" ? COMP_BY_NAME[compName] : null
   if (tab === "compound" && !fc) return notFound("That compound is not in the data.")
   if (fc) {
@@ -3336,7 +3331,7 @@ function viewFood(slug, tab, compName) {
     "</dd></div><div><dt>Linked health conditions</dt><dd>" + num(conds.length) + "</dd></div></dl>" : "") +
     '<nav class="tabs flow-tabs" aria-label="Food sections">' + FOOD_TABS.map(function (t, i) {
       return (i && t[0] !== "compare" ? '<span class="tab-arrow" aria-hidden="true">→</span>' : i ? '<span class="tab-gap" aria-hidden="true"></span>' : "") +
-        '<a href="' + (t[0] === "mechanism" ? hrefMech(f) : hrefFood(f, t[0] === "overview" ? "" : t[0])) + '"' + (t[0] === shownTab ? ' aria-current="page"' : "") + ">" + t[1] + "</a>"
+        '<a href="' + hrefFood(f, t[0] === "overview" ? "" : t[0]) + '"' + (t[0] === shownTab ? ' aria-current="page"' : "") + ">" + t[1] + "</a>"
     }).join("") + "</nav>"
   var body = "", after = null
   if (fc) body = foodCompound(f, fc, conds)
@@ -3344,7 +3339,11 @@ function viewFood(slug, tab, compName) {
     body = '<div class="frame empty"><b>No detected compounds</b>Scientists measured ' + plural(f.zero.length, "compound") + " in this food and all were zero. Nothing links onward.</div>"
   } else if (tab === "overview") body = foodOverview(f, conds)
   else if (tab === "composition") body = foodComposition(f)
-  else if (tab === "compare") {
+  else if (tab === "mechanism") {
+    var d = diagramPanel([f], { side: true }, "food")
+    body = d.html
+    after = d.bind
+  } else if (tab === "compare") {
     var c = foodCompare(f)
     body = c.html
     after = c.bind
